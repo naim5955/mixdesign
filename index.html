@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concrete Mix Design Calculator</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        
+        h2 { text-align: center; color: var(--primary); margin-bottom: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group { margin-bottom: 15px; }
+        
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; color: #64748b; }
+        input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; transition: border 0.3s; }
+        input:focus { border-color: var(--primary); outline: none; }
+        
+        button { width: 100%; padding: 14px; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        .btn-back { background-color: #64748b; margin-top: 30px; }
+
+        .result-card { background: #f1f5f9; padding: 20px; border-radius: 8px; margin-top: 20px; }
+        .result-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+        .result-row:last-child { border: none; font-weight: bold; font-size: 1.1rem; color: var(--primary); }
+        
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="inputPage">
+        <h2>Concrete Mix Design</h2>
+        <div class="grid">
+            <div class="input-group">
+                <label>Target Strength (MPa)</label>
+                <input type="number" id="targetStrength" placeholder="e.g. 30">
+                <label>Slump Value (mm)</label>
+                <input type="number" id="slump" placeholder="e.g. 100">
+                <label>Max Agg Size (mm)</label>
+                <input type="number" id="maxAggSize" placeholder="e.g. 20">
+                <label>Cement Spec. Gravity</label>
+                <input type="number" id="sgCement" value="3.15">
+                <label>Dry Rodded Unit Wt (kg/m³)</label>
+                <input type="number" id="dryRodded" value="1600">
+            </div>
+            <div class="input-group">
+                <label>CA Spec. Gravity</label>
+                <input type="number" id="sgCA" value="2.65">
+                <label>FA Spec. Gravity</label>
+                <input type="number" id="sgFA" value="2.60">
+                <label>Sand FM</label>
+                <input type="number" id="sandFM" value="2.8">
+                <label>Moisture Content (%)</label>
+                <input type="number" id="moisture" value="2">
+                <label>Absorption Cap. (%)</label>
+                <input type="number" id="absorption" value="1">
+            </div>
+        </div>
+        <button onclick="calculateAndShow()">Calculate Mix Proportions</button>
+    </div>
+
+    <div id="resultPage" class="hidden">
+        <h2>Design Results</h2>
+        <div class="result-card">
+            <div class="result-row"><span>Cement Content:</span> <span id="resCement">-</span></div>
+            <div class="result-row"><span>Water Content:</span> <span id="resWater">-</span></div>
+            <div class="result-row"><span>Fine Aggregate (FA):</span> <span id="resFA">-</span></div>
+            <div class="result-row"><span>Coarse Aggregate (CA):</span> <span id="resCA">-</span></div>
+            <div class="result-row"><span>Total Volume:</span> <span>1.00 m³</span></div>
+            <div class="result-row"><span>Mix Ratio (C:FA:CA):</span> <span id="resRatio">-</span></div>
+        </div>
+        <button class="btn-back" onclick="goBack()">← Calculate Again</button>
+    </div>
+</div>
+
+<script>
+    function calculateAndShow() {
+        // 1. Get Values
+        const cementSG = parseFloat(document.getElementById('sgCement').value);
+        const caSG = parseFloat(document.getElementById('sgCA').value);
+        const faSG = parseFloat(document.getElementById('sgFA').value);
+        
+        // 2. Sample Logic (Simplified ACI Method)
+        // In a real app, these values would be interpolated from tables
+        let water = 180; // kg/m3 (based on slump/size)
+        let w_c_ratio = 0.45; 
+        let cement = water / w_c_ratio;
+        
+        // Volumetric calculation: Vol = Mass / (SG * 1000)
+        let vCement = cement / (cementSG * 1000);
+        let vWater = water / 1000;
+        let vCA = 0.42; // Example volume for CA based on Max Size
+        let vAir = 0.02; // 2% air entrained
+        
+        // FA Volume is the remaining space
+        let vFA = 1 - (vCement + vWater + vCA + vAir);
+        
+        let massCA = vCA * caSG * 1000;
+        let massFA = vFA * faSG * 1000;
+
+        // 3. Update Results Page
+        document.getElementById('resCement').innerText = cement.toFixed(2) + " kg";
+        document.getElementById('resWater').innerText = water.toFixed(2) + " kg";
+        document.getElementById('resFA').innerText = massFA.toFixed(2) + " kg";
+        document.getElementById('resCA').innerText = massCA.toFixed(2) + " kg";
+        
+        let ratioFA = (massFA / cement).toFixed(2);
+        let ratioCA = (massCA / cement).toFixed(2);
+        document.getElementById('resRatio').innerText = `1 : ${ratioFA} : ${ratioCA}`;
+
+        // 4. Switch Pages
+        document.getElementById('inputPage').classList.add('hidden');
+        document.getElementById('resultPage').classList.remove('hidden');
+    }
+
+    function goBack() {
+        document.getElementById('inputPage').classList.remove('hidden');
+        document.getElementById('resultPage').classList.add('hidden');
+    }
+</script>
+
+</body>
+</html>
